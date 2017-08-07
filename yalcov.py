@@ -25,6 +25,7 @@ def md5(fname):
 
 class yalcov:
     mask_cnt = False
+    hash_f = {}
 
     def __init__(self, logfile, mc):
         self.logfn = logfile
@@ -62,7 +63,7 @@ class yalcov:
     def report(self):
         c = conn.cursor()
 
-        c.execute('''SELECT filepath FROM cov''')
+        c.execute('''SELECT distinct filepath FROM cov''')
         rows = c.fetchall()
         files = []
         for row in rows:
@@ -77,7 +78,8 @@ class yalcov:
                 linecov[row[1]] = row[2]
 
             lineno = 1
-            reportf = open("rep_" + md5(f), "w")
+            self.hash_f[f] = md5(f)
+            reportf = open("rep_" + self.hash_f[f], "w")
             srcfile = open(f, "r")
             for line in srcfile:
                 hitcnt = 0
@@ -90,6 +92,9 @@ class yalcov:
 
             srcfile.close()
             reportf.close()
+
+        for f, v in self.hash_f.iteritems():
+            print(f, "->", v)
 
 
 def main(argv):
