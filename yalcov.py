@@ -1,34 +1,43 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+import sys
+import os
 import sqlite3
 
-conn = sqlite3.connect('yalcov')
+try:
+    os.remove('yalcov.db')
+except OSError:
+    pass
+
+conn = sqlite3.connect('yalcov.db')
+
 
 class yalcov:
     def __init__(self, logfile):
         self.logfn = logfile
         logf = open(self.logfn, "r")
-        parse_log(logf)
-        report()
+        self.parse_log(logf)
+        self.report()
 
     def parse_log(self, logf):
         c = conn.cursor()
 
         # Create table
         c.execute('''CREATE TABLE cov
-                       (filepath text, line real, hitcnt real)''')
+                       (filepath text, line int, hitcnt int)''')
 
         for line in logf.readlines():
-            lineno = line.split(':')[1]
+            lineno = int(line.split(':')[1])
             path = line.split(':')[0]
 
-            c.execute("SELECT hitcnt FROM cov WHERE filepath = '%s' AND line = '%d'" % path, lineno)
-            row = cur.fetchone()
+            c.execute("SELECT hitcnt FROM cov WHERE filepath = '%s' AND line = '%d'" % (path, lineno))
+            row = c.fetchone()
             if row is None:
                 # Insert a row of data
-                c.execute("INSERT INTO cov VALUES (%s, %d, 1)" % path, lineno)
+                c.execute("INSERT INTO cov VALUES (?, ?, 1)", (path, lineno))
             else:
-                c.execute("UPDATE cov SET hitcnt = hitcnt + 1 WHERE filepath = '%s' AND line = '%d'" % path, lineno)
+                c.execute("UPDATE cov SET hitcnt = hitcnt + 1 WHERE filepath = '%s' AND line = '%d'" % (path, lineno))
 
             # Save (commit) the changes
             conn.commit()
@@ -60,12 +69,14 @@ class yalcov:
                 hitcnt = 0
                 if lineno in linecov:
                     hitcnt = linecov[lineno]
-                print '%4d|%4d|%s' % lineno, hitcnt, line
+                print('%4d|%4d|%s' % (lineno, hitcnt, line), end='')
+                lineno = lineno + 1
 
             srcfile.close()
 
+
 def main(argv):
-    yc = yalcov(argv[0])
+    yalcov(argv[0])
 
 if __name__ == '__main__':
     main(sys.argv[1:])
