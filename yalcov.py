@@ -4,6 +4,8 @@ from __future__ import print_function
 import sys
 import os
 import sqlite3
+from optparse import OptionParser
+
 
 try:
     os.remove('yalcov.db')
@@ -14,8 +16,11 @@ conn = sqlite3.connect('yalcov.db')
 
 
 class yalcov:
-    def __init__(self, logfile):
+    mask_cnt = False
+
+    def __init__(self, logfile, mc):
         self.logfn = logfile
+        self.mask_cnt = mc
         logf = open(self.logfn, "r")
         self.parse_log(logf)
         self.report()
@@ -69,6 +74,8 @@ class yalcov:
                 hitcnt = 0
                 if lineno in linecov:
                     hitcnt = linecov[lineno]
+                    if self.mask_cnt:
+                        hitcnt = 1
                 print('%4d|%4d|%s' % (lineno, hitcnt, line), end='')
                 lineno = lineno + 1
 
@@ -76,7 +83,11 @@ class yalcov:
 
 
 def main(argv):
-    yalcov(argv[0])
+    parser = OptionParser()
+    parser.add_option("-m", "--mask-cnt", action="store_true", dest="mask_cnt", default=False,
+                                        help="ignore hit count in report, set hit count to 1 for any value >= 1")
+    (options, args) = parser.parse_args(argv)
+    yalcov(args[0], options.mask_cnt)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
