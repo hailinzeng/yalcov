@@ -5,6 +5,7 @@ import sys
 import os
 import sqlite3
 from optparse import OptionParser
+import hashlib
 
 
 try:
@@ -14,6 +15,13 @@ except OSError:
 
 conn = sqlite3.connect('yalcov.db')
 
+
+def md5(fname):
+    hash_md5 = hashlib.md5()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
 
 class yalcov:
     mask_cnt = False
@@ -69,6 +77,7 @@ class yalcov:
                 linecov[row[1]] = row[2]
 
             lineno = 1
+            reportf = open("rep_" + md5(f), "w")
             srcfile = open(f, "r")
             for line in srcfile:
                 hitcnt = 0
@@ -76,10 +85,11 @@ class yalcov:
                     hitcnt = linecov[lineno]
                     if self.mask_cnt:
                         hitcnt = 1
-                print('%4d|%4d|%s' % (lineno, hitcnt, line), end='')
+                reportf.write('%4d|%4d|%s' % (lineno, hitcnt, line))
                 lineno = lineno + 1
 
             srcfile.close()
+            reportf.close()
 
 
 def main(argv):
